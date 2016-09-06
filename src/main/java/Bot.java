@@ -80,7 +80,7 @@ public class Bot extends PircBot{
         if(tagType == ""){
             j.addProperty("error","TAG_TYPE_UNKNOWN");
             return j;
-        }else System.err.println("Continuing...");
+        }//else System.err.println("Continuing...");
         msg = msg.replace(" " + tagType,";" + tagType);
         msg =msg.replaceAll("=;","=null;");
         String[] tagSets = msg.split(";");
@@ -88,7 +88,7 @@ public class Bot extends PircBot{
             if(i != tagSets.length-1){
                 String[] values = tagSet.split("=");
                 j.addProperty(values[0],values[1]);
-                System.err.println("Added vals " + values[0] + " : " + values[1] + " @ i=" + i);
+                //System.err.println("Added val " + values[0] + " : " + values[1] + " @ i=" + i);
             }
             else{
                 String value = tagSet.replace(tagType,"");

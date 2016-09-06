@@ -6,16 +6,40 @@ public class Command {
     private String response;
     private CommandType type;
     private int cooldown;
+    private String typeString;
 
     public Command(String trigger, String response, CommandType type){
         this.type = type;
         this.response = response;
         this.trigger = trigger;
+        switch(type){
+            case DUMMY:
+                        typeString = "dummy";
+                        break;
+            case CONTAINS:
+                        typeString = "contains";
+                        break;
+            default:
+                        typeString = "dummy";
+        }
+
+
     }
     public Command(String trigger, String response, CommandType type, int cooldown){
         this.type = type;
         this.response = response;
         this.trigger = trigger;
+        this.cooldown = cooldown;
+        switch(type){
+            case DUMMY:
+                typeString = "dummy";
+                break;
+            case CONTAINS:
+                typeString = "contains";
+                break;
+            default:
+                typeString = "dummy";
+        }
     }
 
     public String getResponse(String message){
@@ -49,5 +73,17 @@ public class Command {
 
     public int getCooldown(){
         return cooldown;
+    }
+
+    public String toString(){
+        return getTrigger() + " : " + getResponse(getTrigger());
+    }
+
+    public String getTypeString(){
+        return typeString;
+    }
+
+    public String getResponse(){
+        return response;
     }
 }
