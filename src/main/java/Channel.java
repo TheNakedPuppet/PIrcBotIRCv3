@@ -1,10 +1,7 @@
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 
 /**
@@ -63,11 +60,14 @@ public class Channel {
         }
         return false;
     }
+    public ArrayList<Command> readFromFile(String saveLocation) throws FileNotFoundException {
+        ArrayList<Command> commands = new ArrayList<Command>();
+        JsonReader jr = new JsonReader(new FileReader(new File(saveLocation)));
+        Command c;
+        return commands;
+    }
     public boolean saveToFile(String saveLocation) throws IOException {
-        JsonObject j = new JsonObject();
-        JsonArray ja = new JsonArray();
-        FileWriter fw = new FileWriter(new File(saveLocation));
-        JsonWriter writer = new JsonWriter(fw);
+        JsonWriter writer = new JsonWriter(new FileWriter(new File(saveLocation)));
         writer.setIndent("  ");
         writer.beginObject();
         writer.name(getName());
