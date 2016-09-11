@@ -14,6 +14,10 @@ public class IRCv3TAGS {
     static String TAG_PART    = ".tmi.twitch.tv PART" ;
     static String TAG_PRIVMSG = ".tmi.twitch.tv PRIVMSG";
 
+    static String TAG_CAP_TAGS = ":tmi.twitch.tv CAP * ACK :twitch.tv/tags";
+    static String TAG_CAP_COMMANDS = ":tmi.twitch.tv CAP * ACK :twitch.tv/commands";
+    static String TAG_CAP_MEMBERSHIP = ":tmi.twitch.tv CAP * ACK :twitch.tv/membership";
+
     public static String[] TAGS = new String[]{
             TAG_HOSTTARGET,  //0
             TAG_CLEARCHAT,   //1
@@ -24,6 +28,9 @@ public class IRCv3TAGS {
             TAG_GLOBALUSERSTATE, //6
             TAG_JOIN,       //7
             TAG_PART,       //8
-            TAG_PRIVMSG     //9
+            TAG_PRIVMSG,     //9
+            TAG_CAP_TAGS,   //10
+            TAG_CAP_COMMANDS,   //11
+            TAG_CAP_MEMBERSHIP  //12
     };
 }

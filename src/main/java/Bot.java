@@ -6,11 +6,10 @@ import org.jibble.pircbot.PircBot;
 import java.io.IOException;
 import java.util.ArrayList;
 
-/**
- * Created by TNP on 8/27/2016.
- */
 public class Bot extends PircBot{
-    private String ver = "0.0.3";
+
+    private String ver = "0.9.10";
+
     private String name;
     private String oauth;
     private ArrayList<Channel> assignedChannels;
@@ -57,8 +56,16 @@ public class Bot extends PircBot{
     @Override
     public void onUnknown(String line){
         JsonObject j = parseTags(line);
+        j.addProperty("tagType",j.get("tagType").getAsString());
+        if (j.get("tagType").getAsString().equalsIgnoreCase(IRCv3TAGS.TAG_PRIVMSG)){
+            System.err.println("on message triggered");
+            onMessage(j);
 
-        System.err.println("UNKNOWN: " + line);
+            return;
+        }
+        System.err.println(IRCv3TAGS.TAG_PRIVMSG);
+        System.err.println(j.get("tagType").getAsString());
+        System.err.println("Is PRIVMSG = " + IRCv3TAGS.TAG_PRIVMSG.equalsIgnoreCase(j.get("tagType").getAsString().replace("\"","")));
 
         System.err.println(gson.toJson(j).toString());
 
@@ -73,57 +80,86 @@ public class Bot extends PircBot{
 
             if(msg.contains(tag)){
                 tagType = tag;
-                System.err.println("Tag found = " + tag);
+                msg.replaceAll(tag, "");
                 break;
             }
         }
-        if(tagType == ""){
+        if(tagType.equals("")){
             j.addProperty("error","TAG_TYPE_UNKNOWN");
             return j;
-        }//else System.err.println("Continuing...");
+        }
+
         msg = msg.replace(" " + tagType,";" + tagType);
-        msg =msg.replaceAll("=;","=null;");
+        msg = msg.replaceAll("=;","=null;");
         String[] tagSets = msg.split(";");
         for(String tagSet : tagSets){
-            if(i != tagSets.length-1){
+            if(i != tagSets.length - 1){
                 String[] values = tagSet.split("=");
                 j.addProperty(values[0],values[1]);
-                //System.err.println("Added val " + values[0] + " : " + values[1] + " @ i=" + i);
             }
             else{
-                String value = tagSet.replace(tagType,"");
-                j.addProperty("trailingData",value.trim());
+                String value = tagSet.replace(tagType,"");                  //THIS
+                if(tagType.equalsIgnoreCase(IRCv3TAGS.TAG_PRIVMSG)) {       //IS
+                    String[] values = value.split(":",2);                   //FUCKING
+                    String[] lastTagSet = values[0].split("=");             //DISGUSTING
+                    j.addProperty(lastTagSet[0],lastTagSet[1]);             //TWITCH
+                    j.addProperty("sender",values[1].split("!")[0]);        //PLEASE
+                    values = values[1].split("#")[1].split(":");            //FIX
+
+                    j.addProperty("channel","#" + values[0].trim());
+                    j.addProperty("message",values[1].trim());
+                    j.addProperty("trailingData","null");
+                }else {
+                    j.addProperty("trailingData", value.trim());
+                }
                 j.addProperty("tagType",tagType);
                 j.addProperty("error","NONE");
                 return j;
             }
             i++;
         }
+
         return j;
     }
 
     @Override
     public void onMessage(String channel,String sender,String login,String hostname,String message){
-        String response = "";
+        JsonObject json = new JsonObject();
+        json.addProperty("channel",channel);
+        json.addProperty("sender",sender);
+        json.addProperty("login",login);
+        json.addProperty("hostname",hostname);
+        json.addProperty("message",message);
+        onMessage(json);
+    }
+    public void onMessage(JsonObject json){
+
+        System.err.println("onMessage json started");
+        String response ="";
+        String channel = json.get("channel").getAsString();
+        String sender = json.get("sender").getAsString();
+        String message = json.get("message").getAsString();
+        String login = this.getLogin();
+        String hostname = this.getBotName();
         Channel currentChannel = getChannelByName(channel);
-        System.err.printf("MESSAGE channel=%s  sender =%s login=%s hostname=%s \n message=%s\n",channel,sender,login,hostname,message);
+
+        System.err.printf("MESSAGE channel=%s  sender =%s login=%s \n message=%s\n",channel,sender,login,message);
+
         if(currentChannel == null) {
             System.out.println("CURRENTCHANNEL NULL, getChannelByName() found no channel");
             return;
         }
 
         for(Command command :  currentChannel.getCommands()){
-
-            if((response = command.getResponse(message)) != null){
-                System.out.println("Command found and triggered successfully!");
-                sendMessage(channel,response);
+            response = command.getResponse(message);
+            if(response != null && !response.equals("")){
+                System.out.println("Command found and triggered successfully! response = " + response);
+                sendMessage(channel,Bot.formatResponse(response,json));
                 return;
             }
         }
         System.out.println("Message didn't trigger any commands");
-
     }
-
 
     public String getBotName(){
         return name;
@@ -141,5 +177,12 @@ public class Bot extends PircBot{
 
     public ArrayList<Channel> getAssignedChannels(){
         return assignedChannels;
+    }
+
+    public static String formatResponse(String msg,JsonObject j){
+        //TODO replace all response constants
+        msg = msg.replaceAll("%MESSAGE%",j.get("message").getAsString());
+        msg = msg.replaceAll("%SENDER%",j.get("sender").getAsString());
+        return msg;
     }
 }

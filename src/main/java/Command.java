@@ -7,39 +7,27 @@ public class Command {
     private CommandType type;
     private int cooldown;
     private String typeString;
+    //TODO implement cooldown and text replacement
 
-    public Command(String trigger, String response, CommandType type){
+    public Command(){
+        type = CommandType.DUMMY;
+        trigger = "";
+        response = "";
+        cooldown = 0;
+        typeString = getTypeAsString(type);
+    }
+    public Command(String trigger, String response, CommandType type) {
         this.type = type;
         this.response = response;
         this.trigger = trigger;
-        switch(type){
-            case DUMMY:
-                        typeString = "dummy";
-                        break;
-            case CONTAINS:
-                        typeString = "contains";
-                        break;
-            default:
-                        typeString = "dummy";
-        }
-
-
+        typeString = getTypeAsString(type);
     }
     public Command(String trigger, String response, CommandType type, int cooldown){
         this.type = type;
         this.response = response;
         this.trigger = trigger;
         this.cooldown = cooldown;
-        switch(type){
-            case DUMMY:
-                typeString = "dummy";
-                break;
-            case CONTAINS:
-                typeString = "contains";
-                break;
-            default:
-                typeString = "dummy";
-        }
+        typeString = getTypeAsString(type);
     }
 
     public String getResponse(String message){
@@ -48,14 +36,51 @@ public class Command {
                 if(message.startsWith(trigger)){
                     return response;
                 }return null;
+            case CONTAINS:
+                if(message.contains((trigger))){
+                    return response;
+                }return null;
+
+            case CONTAINS_MULTIPLE:
+                if(message.contains((trigger))){
+                    return response;
+                }return null;
+            case STATIC:
+                if(message.contains((trigger))){
+                    return response;
+                }return null;
             default:
                 return null;
         }
     }
+    public static String getTypeAsString(CommandType type){
+        switch(type){
+            case DUMMY:
+                return "dummy";
 
-    public boolean equals(Object o){
-        Command c1 = (Command) o;
-        return c1.trigger.equalsIgnoreCase(trigger);
+            case CONTAINS:
+                return "contains";
+
+            case CONTAINS_MULTIPLE:
+                return "contains_multiple";
+            case STATIC:
+                return "static";
+            default:
+                return "null";
+        }
+    }
+    public static CommandType getCommandTypeFromString(String s){
+        switch (s){
+            case "dummy":
+                            return CommandType.DUMMY;
+            case "contains":
+                            return CommandType.CONTAINS;
+            case "contains_multiple":
+                            return  CommandType.CONTAINS_MULTIPLE;
+            case "static":
+                            return CommandType.STATIC;
+            default:        return CommandType.DUMMY;
+        }
     }
 
     public String getTrigger(){
@@ -66,24 +91,48 @@ public class Command {
         return type;
     }
 
-    public boolean setCooldown(int cd){
-        cooldown = cd;
-        return true;
-    }
-
     public int getCooldown(){
         return cooldown;
     }
 
-    public String toString(){
-        return getTrigger() + " : " + getResponse(getTrigger());
+    public String getResponse(){
+        return response;
     }
+
 
     public String getTypeString(){
         return typeString;
     }
 
-    public String getResponse(){
-        return response;
+    public Command setTrigger(String s){
+        trigger = s;
+        return this;
+    }
+    public Command setResponse(String s){
+        response = s;
+        return this;
+    }
+    public Command setType(CommandType s){
+        type = s;
+        typeString = getTypeAsString(s);
+        return this;
+    }
+    public Command setType(String s){
+        type = getCommandTypeFromString(s);
+        typeString = s;
+        return this;
+    }
+    public Command setCooldown(int milliseconds){
+        cooldown = milliseconds;
+        return this;
+    }
+
+    public String toString(){
+        return getTypeString() + " " + getTrigger() + " : " + getResponse(getTrigger()) + " cd: " + cooldown;
+    }
+
+    public boolean equals(Object o){
+        Command c1 = (Command) o;
+        return c1.trigger.equalsIgnoreCase(trigger);
     }
 }
