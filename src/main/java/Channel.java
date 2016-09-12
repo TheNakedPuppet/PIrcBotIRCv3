@@ -7,7 +7,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 /**
  * Created by TNP on 8/27/2016.
@@ -17,18 +16,20 @@ public class Channel {
     private ArrayList<Command> commands;
     private String saveLocation;
     private ArrayList<IRCv3User> users;
-    private HashMap<String,String> levels;
     private String lang,emote_only,r9k,slowMode,subs_only;
+    private String viewerlistAPIURL;
 
 
     public Channel(String name){
         this.name = name;
         commands = new ArrayList<Command>();
+        users = new ArrayList<IRCv3User>();
         this.saveLocation = name+"Commands.json";
-        addCommand(new HealthyCommand());
-        addCommand(new Command("!bot","I'm a bot made by スズヤ!",CommandType.DUMMY));
-        addCommand(new Command("butt","I'm a butt made by スズヤ!",CommandType.CONTAINS));
-        addCommand(new Command("!test","This is a test command!",CommandType.DUMMY));
+        this.viewerlistAPIURL = "http://tmi.twitch.tv/group/user/" + name.replace("#","") +  "/chatters";
+        //addCommand(new HealthyCommand());
+        //addCommand(new Command("!bot","I'm a bot made by スズヤ!",CommandType.DUMMY));
+        //addCommand(new Command("butt","I'm a butt made by スズヤ!",CommandType.CONTAINS));
+        //addCommand(new Command("!test","This is a test command!",CommandType.DUMMY));
 
         try {
             if(new File(saveLocation).exists()){
@@ -92,19 +93,19 @@ public class Channel {
                 String name = jr.nextName();
                 switch(name){
                     case "type":
-                                type = Command.getCommandTypeFromString(jr.nextString());
-                                break;
+                        type = Command.getCommandTypeFromString(jr.nextString());
+                        break;
                     case "trigger":
-                                trigger = jr.nextString();
-                                break;
+                        trigger = jr.nextString();
+                        break;
                     case "response":
-                                response = jr.nextString();
-                                break;
+                        response = jr.nextString();
+                        break;
                     case "cooldown":
-                                cooldown = jr.nextInt();
-                                break;
+                        cooldown = jr.nextInt();
+                        break;
                     default:
-                                System.err.println("Default Hit");
+                        System.err.println("Default Hit");
                 }
             }
             jr.endObject();
@@ -146,6 +147,27 @@ public class Channel {
     }
 
     public void setRoomstate(JsonObject j){
+        try{
+            this.lang = j.get("broadcaster-lang").getAsString();
+            this.emote_only = j.get("emote-only").getAsString();
+            this.r9k = j.get("r9k").getAsString();
+            this.slowMode = j.get("slow").getAsString();
+            this.subs_only = j.get("subs-only").getAsString();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
 
+    public IRCv3User getUserByName(String name){
+        for(IRCv3User user : users){
+            if(user.getName().equalsIgnoreCase(name)){
+                return user;
+            }
+        }
+        return null;
+    }
+
+    public ArrayList<IRCv3User> getUsers(){
+        return users;
     }
 }

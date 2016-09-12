@@ -1,4 +1,4 @@
-import com.google.gson.Gson;
+
 import com.google.gson.JsonObject;
 import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.PircBot;
@@ -8,14 +8,14 @@ import java.util.ArrayList;
 
 public class Bot extends PircBot{
 
-    private String ver = "0.9.10";
+    private String ver = "0.9.12";
 
     private String name;
     private String oauth;
     private ArrayList<Channel> assignedChannels;
     static String _twitch = "irc.chat.twitch.tv.";
     static int _port = 6667;
-    private Gson gson;
+    private int users = 0;
 
     //TODO add capabilities, add command trigger check
     public Bot(String name, String oauth, String initialChannel){
@@ -25,7 +25,7 @@ public class Bot extends PircBot{
         this.setName(name);
         this.assignedChannels = new ArrayList<Channel>();
         assignedChannels.add(new Channel(initialChannel));
-        this.setVerbose(true);
+        //this.setVerbose(true);
 
     }
     public Bot(String name, String oauth) {
@@ -34,10 +34,7 @@ public class Bot extends PircBot{
         this.assignedChannels = new ArrayList<Channel>();
         this.changeNick(name);
         this.setName(name);
-        this.setVerbose(true);
-
-
-        gson = new Gson();
+        //this.setVerbose(true);
     }
 
     public Bot init() throws IrcException, IOException {
@@ -56,19 +53,20 @@ public class Bot extends PircBot{
     @Override
     public void onUnknown(String line){
         JsonObject j = parseTags(line);
-        j.addProperty("tagType",j.get("tagType").getAsString());
-        if (j.get("tagType").getAsString().equalsIgnoreCase(IRCv3TAGS.TAG_PRIVMSG)){
-            System.err.println("on message triggered");
-            onMessage(j);
-
+        String err = j.get("error").getAsString();
+        if(!err.equalsIgnoreCase("NONE")){
+            System.err.println("ERROR: " + err);
             return;
         }
-        System.err.println(IRCv3TAGS.TAG_PRIVMSG);
-        System.err.println(j.get("tagType").getAsString());
-        System.err.println("Is PRIVMSG = " + IRCv3TAGS.TAG_PRIVMSG.equalsIgnoreCase(j.get("tagType").getAsString().replace("\"","")));
+        switch(j.get("tagType").getAsString()){
+            case(IRCv3TAGS.TAG_PRIVMSG):
+                                onMessage(j);
+                                break;
+            case(IRCv3TAGS.TAG_ROOMSTATE):
+                                getChannelByName(j.get("trailingData").getAsString()).setRoomstate(j);
+                                break;
 
-        System.err.println(gson.toJson(j).toString());
-
+        }
     }
 
     public static JsonObject parseTags(String msg){
@@ -88,14 +86,13 @@ public class Bot extends PircBot{
             j.addProperty("error","TAG_TYPE_UNKNOWN");
             return j;
         }
-
         msg = msg.replace(" " + tagType,";" + tagType);
         msg = msg.replaceAll("=;","=null;");
         String[] tagSets = msg.split(";");
         for(String tagSet : tagSets){
             if(i != tagSets.length - 1){
                 String[] values = tagSet.split("=");
-                j.addProperty(values[0],values[1]);
+                j.addProperty(values[0].replace("@",""),values[1]);
             }
             else{
                 String value = tagSet.replace(tagType,"");                  //THIS
@@ -118,7 +115,6 @@ public class Bot extends PircBot{
             }
             i++;
         }
-
         return j;
     }
 
@@ -133,8 +129,6 @@ public class Bot extends PircBot{
         onMessage(json);
     }
     public void onMessage(JsonObject json){
-
-        System.err.println("onMessage json started");
         String response ="";
         String channel = json.get("channel").getAsString();
         String sender = json.get("sender").getAsString();
@@ -142,9 +136,12 @@ public class Bot extends PircBot{
         String login = this.getLogin();
         String hostname = this.getBotName();
         Channel currentChannel = getChannelByName(channel);
-
-        System.err.printf("MESSAGE channel=%s  sender =%s login=%s \n message=%s\n",channel,sender,login,message);
-
+        IRCv3User user = currentChannel.getUserByName(sender);
+        String display_name = json.get("display-name").getAsString();
+        if(user == null){
+            user  = new IRCv3User(currentChannel,name,display_name,assignID(),false,false,false);
+            currentChannel.getUsers().add(user);
+        }
         if(currentChannel == null) {
             System.out.println("CURRENTCHANNEL NULL, getChannelByName() found no channel");
             return;
@@ -184,5 +181,14 @@ public class Bot extends PircBot{
         msg = msg.replaceAll("%MESSAGE%",j.get("message").getAsString());
         msg = msg.replaceAll("%SENDER%",j.get("sender").getAsString());
         return msg;
+    }
+
+    public void addCommand(JsonObject json){
+        String message = json.get("message").getAsString();
+
+    }
+
+    public int assignID(){
+        return ++users;
     }
 }

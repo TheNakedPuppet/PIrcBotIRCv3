@@ -1,9 +1,6 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 
-/**
- * Created by TNP on 8/27/2016.
- */
 public class Main {
     static HashMap<String,String> botNames; // botName,oauth
     static HashMap<String,String> channels; //channelName, botName
@@ -12,9 +9,9 @@ public class Main {
     public static void main(String args[]) throws Exception {
         botNames = new HashMap<String, String>();
         channels = new HashMap<String, String>();
-        botNames.put("thenakedpuppet","");
+        botNames.put("thenakedpuppet","oauth:7ykmzlxp3698ik1jnfw3xng86p63zj");
         channels.put("#thenakedpuppet","thenakedpuppet");
-        channels.put("#ayitzchance","thenakedpuppet");
+        //channels.put("#ayitzchance","thenakedpuppet");
 
 
         for(String s: botNames.keySet()){
@@ -23,12 +20,9 @@ public class Main {
             System.err.println("Bot created " + s);
         }
         populateChannels();
-
         for(Bot b: bots){
             b.init();
         }
-
-
     }
      static void populateChannels() throws Exception{
         for(String s: channels.keySet()){
