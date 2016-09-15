@@ -8,14 +8,14 @@ import java.util.ArrayList;
 
 public class Bot extends PircBot{
 
-    private String ver = "0.9.12";
+    private String ver = "0.9.14";
 
     private String name;
     private String oauth;
     private ArrayList<Channel> assignedChannels;
     static String _twitch = "irc.chat.twitch.tv.";
     static int _port = 6667;
-    private int users = 0;
+    public static int users = 0;
 
     //TODO add capabilities, add command trigger check
     public Bot(String name, String oauth, String initialChannel){
@@ -25,7 +25,7 @@ public class Bot extends PircBot{
         this.setName(name);
         this.assignedChannels = new ArrayList<Channel>();
         assignedChannels.add(new Channel(initialChannel));
-        //this.setVerbose(true);
+        this.setVerbose(true);
 
     }
     public Bot(String name, String oauth) {
@@ -34,7 +34,7 @@ public class Bot extends PircBot{
         this.assignedChannels = new ArrayList<Channel>();
         this.changeNick(name);
         this.setName(name);
-        //this.setVerbose(true);
+        this.setVerbose(true);
     }
 
     public Bot init() throws IrcException, IOException {
@@ -126,6 +126,7 @@ public class Bot extends PircBot{
         json.addProperty("login",login);
         json.addProperty("hostname",hostname);
         json.addProperty("message",message);
+        json.addProperty("display-name",sender);
         onMessage(json);
     }
     public void onMessage(JsonObject json){
@@ -155,7 +156,7 @@ public class Bot extends PircBot{
                 return;
             }
         }
-        System.out.println("Message didn't trigger any commands");
+       // System.out.println(message);
     }
 
     public String getBotName(){
@@ -188,7 +189,7 @@ public class Bot extends PircBot{
 
     }
 
-    public int assignID(){
+    public static long assignID(){
         return ++users;
     }
 }

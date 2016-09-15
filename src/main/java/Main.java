@@ -10,7 +10,7 @@ public class Main {
         botNames = new HashMap<String, String>();
         channels = new HashMap<String, String>();
         botNames.put("thenakedpuppet","oauth:7ykmzlxp3698ik1jnfw3xng86p63zj");
-        channels.put("#thenakedpuppet","thenakedpuppet");
+        channels.put("#neet_elysion","thenakedpuppet");
         //channels.put("#ayitzchance","thenakedpuppet");
 
 
