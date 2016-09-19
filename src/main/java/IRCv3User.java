@@ -4,7 +4,9 @@ public class IRCv3User {
     private String name;
     private String displayName;
     private long ID;
-    private boolean isSubscribed, isMod, isTurbo;
+    private int isSubscribed;
+    private int isMod;
+    private int isTurbo; // -1 for false, 0 for unknown, 1 for true
     private int exp;
     private int level;
     private Date dateJoined, dateLastSeen;
@@ -13,7 +15,7 @@ public class IRCv3User {
     private int commandsSent;
 
 
-    public IRCv3User(Channel channel, String name, String displayName, long ID, boolean isMod, boolean isSubscribed, boolean isTurbo ) {
+    public IRCv3User(Channel channel, String name, String displayName, long ID, int isMod, int isSubscribed, int isTurbo ) {
         this.name = name;
         this.displayName = displayName;
         this.ID = ID;
@@ -31,6 +33,10 @@ public class IRCv3User {
         //TODO set up an actual level system
         this.exp = exp;
         this.level = (exp / 10) + 1;
+        return this;
+    }
+    public IRCv3User addExp(int exp){
+        this.exp += exp;
         return this;
     }
 
@@ -67,30 +73,30 @@ public class IRCv3User {
         return this;
     }
 
-    public boolean isSubscribed() {
+    public int isSubscribed() {
         return isSubscribed;
     }
 
-    public IRCv3User setSubscribed(boolean subscribed) {
+    public IRCv3User setSubscribed(int subscribed) {
         isSubscribed = subscribed;
         return this;
     }
 
-    public boolean isMod() {
+    public int isMod() {
         return isMod;
     }
 
-    public IRCv3User setMod(boolean mod) {
+    public IRCv3User setMod(int mod) {
         isMod = mod;
         return this;
 
     }
 
-    public boolean isTurbo() {
+    public int isTurbo() {
         return isTurbo;
     }
 
-    public void setTurbo(boolean turbo) {
+    public void setTurbo(int turbo) {
         isTurbo = turbo;
     }
 

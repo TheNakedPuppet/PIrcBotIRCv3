@@ -7,11 +7,14 @@ public class Main {
     static ArrayList<Bot> bots = new ArrayList<Bot>();
 
     public static void main(String args[]) throws Exception {
+
         botNames = new HashMap<String, String>();
         channels = new HashMap<String, String>();
+        //TODO move this shit to a file
+        //TODO add emotesets
         botNames.put("thenakedpuppet","oauth:7ykmzlxp3698ik1jnfw3xng86p63zj");
-        channels.put("#neet_elysion","thenakedpuppet");
-        //channels.put("#ayitzchance","thenakedpuppet");
+       // channels.put("#thenakedpuppet","thenakedpuppet");
+        channels.put("#ayitzchance","thenakedpuppet");
 
 
         for(String s: botNames.keySet()){
@@ -29,7 +32,7 @@ public class Main {
             String v = channels.get(s);
             for(Bot b : bots){
                 if(b.getBotName().equalsIgnoreCase(v)){
-                    b.getAssignedChannels().add(new Channel(s));
+                    b.getAssignedChannels().add(new Channel(s,b));
                     System.err.println("Bot name: " + b.getBotName());
                     break;
                 }

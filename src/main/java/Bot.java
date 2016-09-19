@@ -8,7 +8,7 @@ import java.util.ArrayList;
 
 public class Bot extends PircBot{
 
-    private String ver = "0.9.14";
+    private String ver = "0.9.18";
 
     private String name;
     private String oauth;
@@ -17,14 +17,14 @@ public class Bot extends PircBot{
     static int _port = 6667;
     public static int users = 0;
 
-    //TODO add capabilities, add command trigger check
+    //TODO Move assigned channels to file
     public Bot(String name, String oauth, String initialChannel){
         this.name = name;
         this.oauth = oauth;
         this.changeNick(name);
         this.setName(name);
         this.assignedChannels = new ArrayList<Channel>();
-        assignedChannels.add(new Channel(initialChannel));
+        assignedChannels.add(new Channel(initialChannel,this));
         this.setVerbose(true);
 
     }
@@ -140,7 +140,7 @@ public class Bot extends PircBot{
         IRCv3User user = currentChannel.getUserByName(sender);
         String display_name = json.get("display-name").getAsString();
         if(user == null){
-            user  = new IRCv3User(currentChannel,name,display_name,assignID(),false,false,false);
+            user  = new IRCv3User(currentChannel,name,display_name,assignID(),0,0,0);
             currentChannel.getUsers().add(user);
         }
         if(currentChannel == null) {
@@ -149,7 +149,7 @@ public class Bot extends PircBot{
         }
 
         for(Command command :  currentChannel.getCommands()){
-            response = command.getResponse(message);
+            response = command.getResponse(json,message);
             if(response != null && !response.equals("")){
                 System.out.println("Command found and triggered successfully! response = " + response);
                 sendMessage(channel,Bot.formatResponse(response,json));
@@ -188,7 +188,7 @@ public class Bot extends PircBot{
         String message = json.get("message").getAsString();
 
     }
-
+    //TODO save ID database and assign IDs
     public static long assignID(){
         return ++users;
     }

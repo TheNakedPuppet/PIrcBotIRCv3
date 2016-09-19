@@ -5,5 +5,8 @@ public enum CommandType {
     DUMMY,
     CONTAINS,
     CONTAINS_MULTIPLE,
-    STATIC
+    MATCHES,
+    ADD,
+    HEALTHY,
+    LEVEL
 }

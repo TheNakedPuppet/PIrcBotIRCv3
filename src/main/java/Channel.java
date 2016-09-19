@@ -18,18 +18,20 @@ public class Channel {
     private ArrayList<Command> commands;
     private String saveLocation;
 
+    private Bot bot;
     private ArrayList<IRCv3User> users;
 
     private String viewerlistAPIURL;
     private HttpURLConnection channelStatusConnection;
 
     private String channelStatusURL;
-    private String lang,emote_only,r9k,slowMode,subs_only;
-    private int chatterCount;
+    private String lang,emote_only,r9k,slowMode,subs_only, status, game;
+    private boolean isPartner;
+    private int chatterCount, views, followers;
 
-    private ScheduledExecutorService sched = Executors.newScheduledThreadPool(1);
+    private ScheduledExecutorService sched = Executors.newScheduledThreadPool(2);
 
-    public class Response {
+    public class ViewerListResponse {
         @SerializedName("chatter_count")
         public String chatter_count;
         @SerializedName("chatters")
@@ -44,30 +46,40 @@ public class Channel {
     }
 
 
-    public Channel(String name){
+
+    public Channel(String name, Bot b){
+        bot = b;
         this.name = name;
         commands = new ArrayList<Command>();
         users = new ArrayList<IRCv3User>();
-        this.saveLocation = "usr/"+name+"Commands.json";
-        this.viewerlistAPIURL = "http://tmi.twitch.tv/group/user/" + name.replace("#","") +  "/chatters";
-        this.channelStatusURL = "http://api.twitch.tv/kraken/channels/" + name.replace("#","");
+        this.saveLocation = "cmd/"+name+"Commands.json";
+        this.viewerlistAPIURL = "https://tmi.twitch.tv/group/user/" + name.replace("#","") +  "/chatters";
+        this.channelStatusURL = "https://api.twitch.tv/kraken/channels/" + name.replace("#","");
+        //commands.add(new Command("!suzuya add","",CommandType.ADD,0,1,0,this));
+        //commands.add(new Command("!level","",CommandType.LEVEL,0,0,0,this));
+
         sched.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-
                 try {
-                    //users = getUsers(viewerlistAPIURL);
-                   // getChannelStatus();
+                    users = getUsers(viewerlistAPIURL);
 
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         },0,10, TimeUnit.SECONDS);
-        addCommand(new HealthyCommand());
-        //addCommand(new Command("!bot","I'm a bot made by スズヤ!",CommandType.DUMMY));
-        //addCommand(new Command("butt","I'm a butt made by スズヤ!",CommandType.CONTAINS));
-        //addCommand(new Command("!test","This is a test command!",CommandType.DUMMY));
+
+        sched.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    getChannelStatus();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        },0,1,TimeUnit.MINUTES);
 
         try {
             if(new File(saveLocation).exists()){
@@ -119,6 +131,7 @@ public class Channel {
         String trigger="",response="";
         CommandType type = CommandType.DUMMY;
         int cooldown = 0;
+        int modOnly = 0, subOnly = 0;
         Command c;
         JsonReader jr = new JsonReader(new FileReader(new File(saveLocation)));
         jr.beginObject();
@@ -142,17 +155,31 @@ public class Channel {
                     case "cooldown":
                         cooldown = jr.nextInt();
                         break;
+                    case "modOnly":
+                        modOnly = jr.nextInt();
+                        break;
+                    case "subOnly":
+                        subOnly = jr.nextInt();
+                        break;
                     default:
                         System.err.println("Default Hit");
                 }
             }
             jr.endObject();
-            if(trigger.equals("!healthy")){
-                c=  new HealthyCommand().setTrigger(trigger).setResponse(response).setType(type).setCooldown(cooldown);
-            }else{
-                c = new Command(trigger,response,type,cooldown);
+            switch(type){
+                case HEALTHY:
+                    c = new Command("!healthy",response,CommandType.HEALTHY,cooldown,modOnly,subOnly,this);
+                    break;
+                case ADD:
+                    //TODO CHANGE BOT COMMAND NAME
+                    c = new Command("!suzuya add","",CommandType.ADD,cooldown,modOnly,subOnly,this);
+                    break;
+                case LEVEL:
+                    c = new Command("!level","",CommandType.LEVEL,cooldown,modOnly,subOnly,this);
+                default:
+                    c = new Command(trigger,response,type,cooldown,modOnly,subOnly,this);
+
             }
-            System.err.println("Loaded Command: " + c.toString());
             commands.add(c);
         }
         jr.endArray();
@@ -186,7 +213,6 @@ public class Channel {
 
     public void setRoomstate(JsonObject j){
         try{
-            this.lang = j.get("broadcaster-lang").getAsString();
             this.emote_only = j.get("emote-only").getAsString();
             this.r9k = j.get("r9k").getAsString();
             this.slowMode = j.get("slow").getAsString();
@@ -194,13 +220,6 @@ public class Channel {
         }catch(Exception e){
             e.printStackTrace();
         }
-    }
-
-    public void getChannelStatus() throws Exception {
-        channelStatusConnection = (HttpURLConnection) new URL(channelStatusURL).openConnection();
-        channelStatusConnection.setRequestMethod("GET");
-        channelStatusConnection.setRequestProperty("Client-ID","l9ck16iaqcb6hc0rtikvh4xusps00so");
-        //TODO
     }
 
 
@@ -218,82 +237,33 @@ public class Channel {
     }
 
     public ArrayList<IRCv3User> getUsers(String viewerlistAPIURL)throws Exception{
-
+        //TODO load users from file
         String json = readJsonFromUrl(viewerlistAPIURL);
-        //System.err.println(json);
-        ArrayList<IRCv3User> users = new ArrayList<IRCv3User>();
+        ArrayList<IRCv3User> newUsers = new ArrayList<IRCv3User>();
 
         Gson gson = new Gson();
-        Response r = gson.fromJson(json,Response.class);
+        ViewerListResponse r = gson.fromJson(json,ViewerListResponse.class);
         chatterCount = Integer.parseInt(r.chatter_count);
+        ArrayList<String> currentUsers = new ArrayList<String>();
+        for(IRCv3User u : getUsers()){
+            currentUsers.add(u.getName());
+        }
         for(String n : r.chatters.moderators){
-            users.add(new IRCv3User(this,n,n,Bot.assignID(),true,false,false));
-            System.err.println("added moderator " + n);
+            if(currentUsers.contains(n)){
+                newUsers.add(getUserByName(n).addExp(10));
+            }
+            else {
+                newUsers.add(new IRCv3User(this, n, n, Bot.assignID(), 1, 0, 0).addExp(10));
+            }
         }
         for(String n : r.chatters.viewers){
-            users.add(new IRCv3User(this,n,n,Bot.assignID(),false,false,false));
-            System.err.println("added viewer " + n);
-
+            if(currentUsers.contains(n)){
+                newUsers.add(getUserByName(n).addExp(10));
+            }else {
+                newUsers.add(new IRCv3User(this, n, n, Bot.assignID(), 0, 0, 0).addExp(10));
+            }
         }
-        return users;
-        /*
-        JsonReader jr = new JsonReader(new FileReader(new File(saveLocation)));
-
-        jr.beginObject(); //{
-        System.err.println(jr.peek());
-        jr.nextName();
-        System.err.println(jr.peek());
-        jr.beginArray(); //    "_links":{},
-        System.err.println(jr.peek());
-        jr.endArray();
-        System.err.println(jr.peek());
-
-        jr.endObject();
-        System.err.println(jr.peek());
-
-        jr.nextName();
-        System.err.println(jr.peek());
-        this.chatterCount = jr.nextInt(); //"chatter_count": xx,
-
-        jr.nextName(); //"chatters":{
-        jr.beginObject();
-
-        jr.nextName();
-        jr.beginArray(); //"moderators"
-        while(jr.hasNext()){
-            String name = jr.nextString();
-            users.add(new IRCv3User(this,name,name,Bot.assignID(),true,false,false));
-            System.err.println("Found user " + name);
-
-        } jr.endArray();//moderators end
-
-        jr.nextName();
-        jr.beginArray(); //staff (skip)
-        jr.endArray();
-
-        jr.nextName();
-        jr.beginArray(); //admin (skip too)
-        jr.endArray();
-
-        jr.nextName();
-        jr.beginArray(); //global_mods (them too)
-        jr.endArray();
-
-        jr.nextName(); //viewers (keep them)
-        jr.beginArray();
-        while (jr.hasNext()){
-            String name = jr.nextString();
-            users.add(new IRCv3User(this,name,name,Bot.assignID(),false,false,false));
-            System.err.println("Found user " + name);
-
-        }
-        jr.endArray(); //end viewers
-        jr.endObject(); //end chatters
-        jr.endObject(); //end it all
-        jr.close();
-
-        return users;
-      */
+        return newUsers;
     }
 
     public static String readJsonFromUrl(String urlString) throws Exception{
@@ -313,4 +283,40 @@ public class Channel {
                 reader.close();
         }
     }
+
+    private class Roomstate{
+        @SerializedName("status")
+        public String status;
+        @SerializedName("game")
+        public String game;
+        @SerializedName("partner")
+        public boolean partner;
+        @SerializedName("views")
+        public int views;
+        @SerializedName("followers")
+        public int followers;
+    }
+
+    public void setRoomstate(Roomstate r){
+        status = r.status;
+        game = r.game;
+        isPartner = r.partner;
+        views = r.views;
+        followers = r.followers;
+    }
+
+    public void getChannelStatus() throws Exception {
+        channelStatusConnection = (HttpURLConnection) new URL(channelStatusURL).openConnection();
+        channelStatusConnection.setRequestMethod("GET");
+        channelStatusConnection.setRequestProperty("Accept","application/vnd.twitchtv.v3+json");
+        channelStatusConnection.setRequestProperty("Client-ID","l9ck16iaqcb6hc0rtikvh4xusps00so");
+        channelStatusConnection.connect();
+        channelStatusConnection.getContentType();
+        BufferedReader br = new BufferedReader(new InputStreamReader(channelStatusConnection.getInputStream()));
+        String content = br.readLine();
+        br.close();
+        Gson gson = new Gson();
+        setRoomstate(gson.fromJson(content,Roomstate.class));
+    }
+
 }
